@@ -6,7 +6,7 @@
 - Deduplicate file paths
 - Generate ctags for all flattened files
 - Debug mode for troubleshooting
-- Use Verilogfilelist filelist.txt(path) to define output path by user
+- Use VerilogFilelist filelist.f(path) to define output filelist path by user,tags is not support change position.
 
 ## Requirements
 - Neovim >= 0.9
