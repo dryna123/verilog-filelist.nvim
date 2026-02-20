@@ -1,10 +1,10 @@
 local M = {}
 
--- 全局配置（默认值）
+-- 全局配置（默认值：default_output 改为空字符串）
 M.config = {
   verilog_ctags_output_dir = "",
   debug = false,
-  default_output = "flattened_filelist",
+  default_output = "", -- 改为空，和 tags 目录逻辑对齐
 }
 
 -- 1. 调试打印函数（原代码）
@@ -133,8 +133,9 @@ local function process_file(file_path, visited, flattened, top_file_dir)
   debug_print(string.rep("=", 50))
 end
 
--- 5. 生成 tags 文件（原代码）
+-- 5. 生成 tags 文件（原代码，逻辑不变）
 local function generate_tags(flattened_file)
+  -- 复用和 tags 完全一致的目录逻辑
   if not M.config.verilog_ctags_output_dir or M.config.verilog_ctags_output_dir == "" then
     vim.notify("错误：无法获取当前 filelist 文件的上级目录", vim.log.levels.ERROR)
     return false
@@ -202,20 +203,41 @@ local function deduplicate(list)
   return result
 end
 
--- 7. 核心导出函数（原代码）
+-- 7. 核心导出函数（关键修改：和 tags 逻辑对齐）
 function M.flatten_verilog_filelist(args)
-  local output = M.config.default_output
-  if args and #args > 0 and args[1] ~= "" then output = args[1] end
-
+  -- 获取当前打开的 filelist 文件路径
   local current_file = vim.fn.expand "%:p"
   if current_file == "" then
     vim.notify("错误：请先打开一个顶层 filelist 文件", vim.log.levels.ERROR)
     return
   end
 
+  -- 【和 tags 完全一致的逻辑】获取当前 filelist 文件的上级目录
   local current_file_parent_dir = vim.fn.expand "%:p:h:h"
   M.config.verilog_ctags_output_dir = current_file_parent_dir
   debug_print("当前 filelist 上级目录：" .. current_file_parent_dir, "路径配置")
+
+  -- 处理输出路径（和 tags 目录逻辑对齐）
+  local output = ""
+  -- 优先级：用户输入 > 配置的 default_output > 默认文件名
+  if args and #args > 0 and args[1] ~= "" then
+    -- 用户指定了输出路径
+    output = args[1]
+  else
+    -- 未指定时，先判断配置的 default_output 是否为空
+    if M.config.default_output ~= "" then
+      output = M.config.default_output
+    else
+      -- 配置为空时，使用默认文件名（和原逻辑一致）
+      output = "flattened_filelist"
+    end
+    -- 【核心】拼接 tags 同目录（上级目录），和 tags 逻辑完全对齐
+    output = current_file_parent_dir .. "/" .. output
+  end
+
+  -- 标准化输出路径（避免路径拼接错误，如重复/）
+  output = vim.fn.fnamemodify(output, ":p")
+  debug_print("最终输出路径：" .. output, "路径配置")
 
   debug_print(string.rep("=", 60), "顶层处理开始")
   debug_print("顶层文件：" .. current_file)
@@ -233,6 +255,7 @@ function M.flatten_verilog_filelist(args)
     "去重"
   )
 
+  -- 写入文件（使用标准化后的路径）
   vim.fn.writefile(flattened_unique, output, "b")
   local output_full = vim.fn.fnamemodify(output, ":p")
 
