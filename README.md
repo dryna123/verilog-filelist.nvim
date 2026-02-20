@@ -6,6 +6,7 @@
 - Deduplicate file paths
 - Generate ctags for all flattened files
 - Debug mode for troubleshooting
+- Use Verilogfilelist filelist.txt(path) to define output path by user
 
 ## Requirements
 - Neovim >= 0.9
@@ -22,7 +23,6 @@
     -- 可选：自定义配置
     require("verilog_filelist").setup({
       debug = false,
-      default_output = "flattened_filelist",
     })
   end,
 }
